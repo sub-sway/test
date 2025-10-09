@@ -116,7 +116,8 @@ with status_cols[0]:
 
 # [오류 수정] records가 있을 때와 없을 때를 명확히 구분하여 처리
 if records:
-    last_reception_utc = records[0]['timestamp']
+    # [TypeError 수정] DB에서 가져온 naive datetime에 UTC 시간대 정보를 명시적으로 추가
+    last_reception_utc = records[0]['timestamp'].replace(tzinfo=UTC)
     last_reception_kst = last_reception_utc + timedelta(hours=9)
     time_diff = datetime.now(UTC) - last_reception_utc
 
