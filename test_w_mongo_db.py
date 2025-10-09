@@ -73,8 +73,8 @@ def mqtt_thread(q):
 # ==========================
 # Streamlit UI
 # ==========================
-st.set_page_config(page_title="MQTT & MongoDB 실시간 시각화", layout="wide")
-st.title("☁️ MQTT & MongoDB 실시간 센서 시각화")
+st.set_page_config(page_title="PORTY Sensor dashbaord", layout="wide")
+st.title("☁️ PORTY Sensor Dashboard")
 st.write("---")
 
 # MQTT 스레드는 최초 한 번만 실행되도록 설정
