@@ -114,21 +114,26 @@ status_cols = st.columns(3)
 with status_cols[0]:
     st.metric("현재 시간", datetime.now().strftime("%H:%M:%S"))
 
-with status_cols[1]:
-    if records:
-        last_reception_utc = records[0]['timestamp']
-        last_reception_kst = last_reception_utc + timedelta(hours=9)
+# [오류 수정] records가 있을 때와 없을 때를 명확히 구분하여 처리
+if records:
+    last_reception_utc = records[0]['timestamp']
+    last_reception_kst = last_reception_utc + timedelta(hours=9)
+    time_diff = datetime.now(UTC) - last_reception_utc
+
+    with status_cols[1]:
         st.metric("마지막 수신 시간 (KST)", last_reception_kst.strftime("%H:%M:%S"))
-        
-        time_diff = datetime.now(UTC) - last_reception_utc
-    else:
+    
+    with status_cols[2]:
+        if time_diff.total_seconds() < 10:
+            st.success("🟢 실시간 수신 중")
+        else:
+            st.warning(f"🟠 {int(time_diff.total_seconds())}초 동안 수신 없음")
+else:
+    with status_cols[1]:
         st.metric("마지막 수신 시간", "N/A")
+    with status_cols[2]:
         st.info("수신 대기 중...")
-with status_cols[2]:
-    if time_diff.total_seconds() < 10:
-        st.success("🟢 실시간 수신 중")
-    else:
-        st.warning(f"🟠 {int(time_diff.total_seconds())}초 동안 수신 없음")
+
 
 st.write("---")
 flame_alert = st.empty()
