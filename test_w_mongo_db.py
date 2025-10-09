@@ -6,22 +6,23 @@ import paho.mqtt.client as mqtt
 import pandas as pd
 import plotly.express as px
 from pymongo import MongoClient
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 import queue
 
 # ==========================
-# HiveMQ Cloud 연결 정보
+# [보안 수정] Streamlit Secrets에서 연결 정보 가져오기
 # ==========================
-BROKER = "8e008ba716c74e97a3c1588818ddb209.s1.eu.hivemq.cloud"
-PORT = 8883
-USERNAME = "Arduino"
-PASSWORD = "One24511"
+BROKER = st.secrets["mqtt"]["BROKER"]
+PORT = st.secrets["mqtt"]["PORT"]
+USERNAME = st.secrets["mqtt"]["USERNAME"]
+PASSWORD = st.secrets["mqtt"]["PASSWORD"]
 TOPIC = "multiSensor/numeric"
+
+MONGO_URI = st.secrets["mongodb"]["MONGO_URI"]
 
 # ==========================
 # MongoDB 연결 설정
 # ==========================
-MONGO_URI = "mongodb+srv://jystarwow_db_user:zf01VaAW4jYH0dVP@porty.oqiwzud.mongodb.net/"
 client = MongoClient(MONGO_URI)
 db = client["SensorDB"]
 collection = db["SensorData"]
@@ -73,7 +74,7 @@ def mqtt_thread(q):
 # ==========================
 # Streamlit UI
 # ==========================
-st.set_page_config(page_title="PORTY Sensor dashbaord", layout="wide")
+st.set_page_config(page_title="PORTY Sensor Dashboard", layout="wide")
 st.title("☁️ PORTY Sensor Dashboard")
 st.write("---")
 
@@ -94,7 +95,7 @@ while not st.session_state.data_queue.empty():
     if len(parts) == 9:
         try:
             data_dict = {
-                "timestamp": datetime.utcnow(),
+                "timestamp": datetime.now(UTC),
                 "CH4": float(parts[0]), "EtOH": float(parts[1]), "H2": float(parts[2]),
                 "NH3": float(parts[3]), "CO": float(parts[4]), "NO2": float(parts[5]),
                 "Oxygen": float(parts[6]), "Distance": float(parts[7]), "Flame": int(parts[8])
@@ -105,48 +106,41 @@ while not st.session_state.data_queue.empty():
     else:
         print(f"⚠️ 데이터 형식 오류: {payload}")
 
-# [핵심 수정] 상단 상태 정보 표시
+# 상단 상태 정보 표시
 st.subheader("📡 실시간 수신 상태")
-# MongoDB에서 최신 데이터를 먼저 가져옴
 records = list(collection.find().sort("timestamp", -1).limit(1000))
-# [수정] 2개의 컬럼으로 변경하고, 원본 데이터 표시 컬럼은 제거
 status_cols = st.columns(3)
 
 with status_cols[0]:
     st.metric("현재 시간", datetime.now().strftime("%H:%M:%S"))
-    # [삭제] '총 수신 메시지' 메트릭 제거
 
 with status_cols[1]:
     if records:
-        # records는 최신순으로 정렬되어 있으므로 첫 번째 항목이 가장 최신 데이터
         last_reception_utc = records[0]['timestamp']
-        # 한국 시간(KST, UTC+9)으로 변환하여 표시
         last_reception_kst = last_reception_utc + timedelta(hours=9)
         st.metric("마지막 수신 시간 (KST)", last_reception_kst.strftime("%H:%M:%S"))
         
-        time_diff = datetime.utcnow() - last_reception_utc
+        time_diff = datetime.now(UTC) - last_reception_utc
     else:
         st.metric("마지막 수신 시간", "N/A")
         st.info("수신 대기 중...")
-
 with status_cols[2]:
     if time_diff.total_seconds() < 10:
-            st.success("🟢 실시간 수신 중")
+        st.success("🟢 실시간 수신 중")
     else:
         st.warning(f"🟠 {int(time_diff.total_seconds())}초 동안 수신 없음")
 
-# [삭제] 마지막 수신 원본 데이터를 표시하던 세 번째 컬럼 제거
+st.write("---")
 flame_alert = st.empty()
 
 if records:
-    df = pd.DataFrame(reversed(records)) # 그래프를 위해 시간순으로 다시 뒤집음
+    df = pd.DataFrame(reversed(records))
     latest_flame = int(df["Flame"].iloc[-1])
     if latest_flame == 0:
         flame_alert.error("🔥 불꽃 감지됨! 즉시 확인이 필요합니다!", icon="🔥")
     else:
         flame_alert.success("🟢 정상 상태 (불꽃 없음)", icon="✅")
 
-    # 현재 센서값들을 상단에 먼저 표시
     st.subheader("📊 현재 센서 값")
     sensors = ["CH4", "EtOH", "H2", "NH3", "CO", "NO2", "Oxygen", "Distance", "Flame"]
     metric_cols = st.columns(5)
@@ -166,7 +160,6 @@ if records:
 
     st.write("---")
 
-    # Flame 센서를 제외하고 그래프 그리기
     st.subheader("📈 센서별 실시간 변화 추세 (최신 1000개)")
     sensors_for_graph = ["CH4", "EtOH", "H2", "NH3", "CO", "NO2", "Oxygen", "Distance"]
     
@@ -187,3 +180,4 @@ else:
 # 2초마다 스크립트 전체를 다시 실행하여 화면을 갱신
 time.sleep(2)
 st.rerun()
+
