@@ -111,14 +111,18 @@ st.subheader("📡 실시간 수신 상태")
 records = list(collection.find().sort("timestamp", -1).limit(1000))
 status_cols = st.columns(3)
 
+# [시간 수정] KST(UTC+9)를 기준으로 현재 시간 표시
+kst_offset = timedelta(hours=9)
+now_kst = datetime.now(UTC) + kst_offset
+
 with status_cols[0]:
-    st.metric("현재 시간", datetime.now().strftime("%H:%M:%S"))
+    st.metric("현재 시간 (KST)", now_kst.strftime("%H:%M:%S"))
 
 # [오류 수정] records가 있을 때와 없을 때를 명확히 구분하여 처리
 if records:
     # [TypeError 수정] DB에서 가져온 naive datetime에 UTC 시간대 정보를 명시적으로 추가
     last_reception_utc = records[0]['timestamp'].replace(tzinfo=UTC)
-    last_reception_kst = last_reception_utc + timedelta(hours=9)
+    last_reception_kst = last_reception_utc + kst_offset
     time_diff = datetime.now(UTC) - last_reception_utc
 
     with status_cols[1]:
@@ -135,6 +139,8 @@ else:
     with status_cols[2]:
         st.info("수신 대기 중...")
 
+
+st.write("---")
 flame_alert = st.empty()
 
 if records:
@@ -184,4 +190,3 @@ else:
 # 2초마다 스크립트 전체를 다시 실행하여 화면을 갱신
 time.sleep(2)
 st.rerun()
-
