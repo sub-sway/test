@@ -15,7 +15,7 @@ import queue
 BROKER = "8e008ba716c74e97a3c1588818ddb209.s1.eu.hivemq.cloud"
 PORT = 8883
 USERNAME = "Arduino"
-PASSWORD = "One2411"
+PASSWORD = "One24511"
 TOPIC = "multiSensor/numeric"
 
 # ==========================
@@ -136,8 +136,6 @@ with status_cols[2]:
         st.warning(f"🟠 {int(time_diff.total_seconds())}초 동안 수신 없음")
 
 # [삭제] 마지막 수신 원본 데이터를 표시하던 세 번째 컬럼 제거
-
-st.write("---")
 flame_alert = st.empty()
 
 if records:
