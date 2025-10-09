@@ -177,7 +177,7 @@ if records:
             if i + j < len(sensors_for_graph):
                 with graph_cols[j]:
                     if sensor in df.columns:
-                        fig = px.line(df, x="timestamp", y=sensor, title=f"{sensor} 변화 추세", labels={"timestamp": "시간", sensor: "값"})
+                        fig = px.line(df, y=sensor, title=f"{sensor} 변화 추세", labels={"timestamp": "시간", sensor: "값"})
                         fig.update_layout(margin=dict(l=20, r=20, t=40, b=20))
                         st.plotly_chart(fig, use_container_width=True)
                     else:
