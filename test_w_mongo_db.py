@@ -134,8 +134,6 @@ else:
     with status_cols[2]:
         st.info("수신 대기 중...")
 
-
-st.write("---")
 flame_alert = st.empty()
 
 if records:
