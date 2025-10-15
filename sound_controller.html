@@ -1,36 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Sound Component</title>
+    <title>Sound Controller</title>
 </head>
 <body>
-    <div id="activation-div">
-        <p>알림음을 사용하려면 아래 버튼을 눌러주세요.</p>
-        <button 
-            id="activate-sound-btn"
-            style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid transparent; background-color: #4CAF50; color: white; font-size: 16px; cursor: pointer;"
-        >
-            🔔 알림음 활성화 (최초 1회 클릭)
-        </button>
-    </div>
-
     <script>
-        // --- 오디오 로직 ---
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-        // 1. 오디오 컨텍스트를 활성화하는 함수
+        // 오디오 컨텍스트를 활성화하는 함수
         async function initAudio() {
             if (audioContext.state === 'suspended') {
-                console.log("AudioContext is suspended. Resuming...");
                 await audioContext.resume();
-                console.log("AudioContext has been resumed by user interaction.");
+                console.log("AudioContext has been successfully resumed by user interaction.");
             }
         }
         
-        // 2. 실제 소리를 재생하는 함수
+        // 실제 소리를 재생하는 함수
         function playSound(type) {
             if (audioContext.state !== 'running') {
-                console.warn("AudioContext is not running. Sound playback aborted.");
+                console.warn("AudioContext is not running. Please activate audio first.");
+                // 소리가 나지 않을 때 브라우저 개발자 도구(F12) 콘솔에서 이 메시지를 확인하세요.
                 return;
             }
 
@@ -65,20 +54,12 @@
             }
         }
 
-        // --- Streamlit과의 통신 로직 ---
-        const activationButton = document.getElementById('activate-sound-btn');
-        const activationDiv = document.getElementById('activation-div');
-        
-        // 3. 활성화 버튼 클릭 이벤트
-        activationButton.onclick = async () => {
-            await initAudio(); // 오디오 활성화!
-            window.parent.Streamlit.setComponentValue({ activated: true }); // Python에 신호 전송
-            activationDiv.style.display = 'none'; // 버튼 숨기기
-        };
-
-        // 4. Python으로부터 소리 재생 명령을 받는 리스너
+        // Python으로부터 오는 모든 메시지를 듣는 리스너
         window.addEventListener('message', event => {
-            if (event.data.type === 'PLAY_SOUND') {
+            // 메시지 타입에 따라 적절한 함수 실행
+            if (event.data.type === 'INIT_AUDIO') {
+                initAudio();
+            } else if (event.data.type === 'PLAY_SOUND') {
                 playSound(event.data.soundType);
             }
         });
