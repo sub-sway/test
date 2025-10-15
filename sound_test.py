@@ -15,7 +15,6 @@ st.title("🔊 최종 사운드 테스트 (안정화 버전)")
 st.markdown("---")
 
 # 1. 보이지 않는 오디오 컨트롤러를 앱에 항상 삽입
-# 이 컴포넌트가 Python의 명령을 기다리는 역할을 함
 components.html(sound_controller_html, height=0)
 
 # 세션 상태 초기화
@@ -28,22 +27,21 @@ if not st.session_state.sound_activated:
     st.info("👇 아래 버튼을 클릭하여 소리 재생을 허용해주세요.")
     
     if st.button("🔔 알림음 활성화 (최초 1회 클릭)", use_container_width=True):
-        # 버튼 클릭 시, JavaScript에 'INIT_AUDIO' 명령 전송
         components.html("""
             <script>
                 window.parent.postMessage({type: 'INIT_AUDIO'}, '*');
             </script>
         """, height=0)
-        # 상태를 '활성화됨'으로 변경하고, Streamlit이 자동으로 UI를 다시 그리게 함
         st.session_state.sound_activated = True
-        st.experimental_rerun()
+        
+        # ⭐️⭐️⭐️ 여기가 수정된 부분입니다! ⭐️⭐️⭐️
+        st.rerun()
 else:
     # 활성화 후 UI
     st.success("✅ 사운드가 활성화되었습니다! 이제 아래 버튼으로 테스트하세요.")
     col1, col2 = st.columns(2)
 
     if col1.button("🔥 화재 경보음 재생", use_container_width=True, type="primary"):
-        # JavaScript에 'PLAY_SOUND' (fire) 명령 전송
         components.html("""
             <script>
                 window.parent.postMessage({type: 'PLAY_SOUND', soundType: 'fire'}, '*');
@@ -51,7 +49,6 @@ else:
         """, height=0)
 
     if col2.button("⚠️ 주의음 재생", use_container_width=True):
-        # JavaScript에 'PLAY_SOUND' (safety) 명령 전송
         components.html("""
             <script>
                 window.parent.postMessage({type: 'PLAY_SOUND', soundType: 'safety'}, '*');
