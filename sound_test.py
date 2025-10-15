@@ -74,6 +74,7 @@ sound_component_html = """
         
         activationButton.onclick = async () => {
             await initAudio();
+            // ⭐️ 핵심: 클릭 시 Python으로 'activated' 값을 전달
             window.parent.Streamlit.setComponentValue({ activated: true });
             activationDiv.style.display = 'none';
         };
@@ -95,25 +96,26 @@ st.set_page_config(page_title="최종 사운드 테스트", layout="centered")
 st.title("🔊 최종 Streamlit 사운드 테스트")
 st.markdown("---")
 
+# 세션 상태 초기화
 if 'sound_activated' not in st.session_state:
     st.session_state.sound_activated = False
 
-st.header("테스트 방법")
+# ⭐️⭐️⭐️ 여기가 수정된 핵심 로직입니다! ⭐️⭐️⭐️
+# st.rerun() 없이 상태에 따라 UI를 자연스럽게 분기합니다.
+
 if not st.session_state.sound_activated:
+    # 1. 활성화되지 않은 상태의 UI
     st.info("👇 아래의 **'알림음 활성화'** 버튼을 먼저 클릭해주세요.")
-else:
-    st.success("✅ 사운드가 활성화되었습니다! 이제 아래 버튼으로 테스트하세요.")
-
-component_return_value = components.html(sound_component_html, height=100)
-
-# ⭐️⭐️⭐️ 여기가 수정된 핵심 부분입니다! ⭐️⭐️⭐️
-# 'component_return_value'가 딕셔너리인지 먼저 확인하여 오류를 방지합니다.
-if isinstance(component_return_value, dict) and component_return_value.get('activated'):
-    if not st.session_state.sound_activated:
+    component_return_value = components.html(sound_component_html, height=100)
+    
+    # 컴포넌트로부터 'activated' 신호를 받으면 상태를 변경
+    if isinstance(component_return_value, dict) and component_return_value.get('activated'):
         st.session_state.sound_activated = True
-        st.rerun()
-
-if st.session_state.sound_activated:
+        # 상태가 변경되었으므로, Streamlit이 자동으로 다시 그리도록 함 (st.rerun() 불필요)
+        st.experimental_rerun()
+else:
+    # 2. 활성화된 후의 UI
+    st.success("✅ 사운드가 활성화되었습니다! 이제 아래 버튼으로 테스트하세요.")
     col1, col2 = st.columns(2)
 
     if col1.button("🔥 화재 경보음 재생", use_container_width=True, type="primary"):
@@ -129,3 +131,6 @@ if st.session_state.sound_activated:
                 window.parent.postMessage({type: 'PLAY_SOUND', soundType: 'safety'}, '*');
             </script>
         """, height=0)
+
+    # 활성화된 후에는 소리 재생을 위한 보이지 않는 리스너 컴포넌트만 렌더링
+    components.html(sound_component_html, height=0)
