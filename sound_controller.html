@@ -3,23 +3,28 @@
 <head>
     <title>Sound Controller</title>
 </head>
-<body>
-    <script>
+<body data-sound-to-play="none"> <script>
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-        // 오디오 컨텍스트를 활성화하는 함수
+        // 1. 오디오 컨텍스트를 활성화하는 함수
+        // 이 함수는 이제 Python의 버튼 클릭과 직접 연결되지 않고, 첫 상호작용 시 호출됩니다.
         async function initAudio() {
             if (audioContext.state === 'suspended') {
                 await audioContext.resume();
-                console.log("AudioContext has been successfully resumed by user interaction.");
+                console.log("AudioContext has been resumed.");
+                // 활성화 성공 신호를 Python으로 전송
+                window.parent.Streamlit.setComponentValue({ activated: true });
             }
         }
         
-        // 실제 소리를 재생하는 함수
+        // 2. 실제 소리를 재생하는 함수
         function playSound(type) {
             if (audioContext.state !== 'running') {
-                console.warn("AudioContext is not running. Please activate audio first.");
-                // 소리가 나지 않을 때 브라우저 개발자 도구(F12) 콘솔에서 이 메시지를 확인하세요.
+                console.warn("AudioContext is not running. Activating now...");
+                // 소리 재생 전, 혹시 활성화되지 않았다면 다시 시도
+                initAudio().then(() => {
+                    if (audioContext.state === 'running') playSound(type);
+                });
                 return;
             }
 
@@ -54,13 +59,19 @@
             }
         }
 
-        // Python으로부터 오는 모든 메시지를 듣는 리스너
-        window.addEventListener('message', event => {
-            // 메시지 타입에 따라 적절한 함수 실행
-            if (event.data.type === 'INIT_AUDIO') {
+        // 3. 컴포넌트가 로드될 때 실행되는 로직
+        window.addEventListener('load', () => {
+            const body = document.body;
+            // Python으로부터 '재생할 소리' 값을 받습니다.
+            const soundToPlay = body.getAttribute('data-sound-to-play');
+
+            // 'activate' 명령이 오면 오디오를 활성화 시도
+            if (soundToPlay === 'activate') {
                 initAudio();
-            } else if (event.data.type === 'PLAY_SOUND') {
-                playSound(event.data.soundType);
+            } 
+            // 'fire' 또는 'safety' 명령이 오면 해당 소리를 재생
+            else if (soundToPlay && soundToPlay !== 'none') {
+                playSound(soundToPlay);
             }
         });
     </script>
